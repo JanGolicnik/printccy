@@ -1,36 +1,50 @@
 #include <stdio.h>
 #include <stdarg.h> 
 
-void my_print_int(va_list* args) {
-    int val = va_arg(*args, int);
-    printf("int %d\n", val);
+void my_print_int(va_list* list, const char* args, int n_args) {
+    int val = va_arg(*list, int);
+    printf("(int %d with args: %.*s)", val, n_args, args);
 }
 
-void my_print_float(va_list* args) {
-    float val = va_arg(*args, double);
-    printf("float %f\n", val);
+void my_print_float(va_list* list, const char* args, int n_args) {
+    float val = va_arg(*list, double);
+    printf("(float %f with args: %.*s)", val, n_args, args);
 }
 
-void my_print_double(va_list* args) {
-    double val = va_arg(*args, double);
-    printf("double %f\n", val);
+void my_print_double(va_list* list, const char* args, int n_args) {
+    double val = va_arg(*list, double);
+    printf("(double %f with args: %.*s)", val, n_args, args);
 }
 
-typedef void(_my_print_func)(va_list* args);
+typedef void(_my_print_func)(va_list*, const char*, int);
 _Thread_local _my_print_func* _my_print_funcs[128];
 _Thread_local _my_print_func** _my_funcs_ptr = NULL;
 
-void _my_print(int n, ...)
+void _my_print(const char* fmt, int n, ...)
 {
     va_list args; va_start(args, n);
     _my_funcs_ptr = _my_print_funcs;
-    for(int i = 0; i < n; i++) 
-        (*_my_funcs_ptr++)(&args);
+    
+    char c;
+    while (c = *(fmt++)) {
+      if (c != '{')
+      {        
+        putchar(c);
+        continue;
+      }
+      
+      const char* start = fmt;
+      while(*(++fmt) && *fmt != '}') {}
+      
+      (*_my_funcs_ptr++)(&args, start, fmt - start);
+      
+      fmt++;
+    }
+    
     va_end(args);
 }
 
 
-// https://groups.google.com/g/comp.std.c/c/d-6Mj5Lko_s?pli=1
 #define __NARG__(...)  __NARG_I_( __VA_ARGS__, __RSEQ_N() )
 #define __NARG_I_(...) __ARG_N( __VA_ARGS__ )
 #define __ARG_N( _1, _2, _3, _4, _5, _6, _7, N, ... ) N
@@ -62,12 +76,12 @@ void _my_print(int n, ...)
 
 #define _MY_OVERLOAD_MACRO(_0, _1, _2, _3, _4, _5, _6, MACRO_NAME, ...) MACRO_NAME
 
-#define PRINT(...) do { _my_funcs_ptr = _my_print_funcs;\
+#define PRINT(fmt, ...) do { _my_funcs_ptr = _my_print_funcs;\
                         _MY_OVERLOAD_MACRO( __VA_ARGS__, _MY_FILL_FPTR7, _MY_FILL_FPTR6, _MY_FILL_FPTR5, _MY_FILL_FPTR4, _MY_FILL_FPTR3, _MY_FILL_FPTR2, _MY_FILL_FPTR1 )( __VA_ARGS__ );\
-                        _my_print( __NARG__( __VA_ARGS__ ), __VA_ARGS__ );\
+                        _my_print(fmt, __NARG__( __VA_ARGS__ ), __VA_ARGS__ );\
                       } while(0)
 
 int main()
 {
-    PRINT(1, 2.0f, 3.0, "hey");
+    PRINT("hey\n{hex}\n{.3}\n{.4}", 1, 2.0f, 3.0);
 }
