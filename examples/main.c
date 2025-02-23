@@ -1,4 +1,4 @@
-#define MY_MATCH_ARG_TYPE_CUSTOM test: print_test
+#define PRINTCCY_CUSTOM_TYPES test: print_test
 
 #include "../printccy.h"
 

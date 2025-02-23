@@ -2,35 +2,35 @@
 
 Printccy is a **header-only** library that introduces a new way to print text in C! It uses some **macro magic** to infer types from variadic arguments and calls the appropriate print functions automatically. Users can also register their own types for printing.
 
-### Example Usage
+## Usage
 
 ```c
-const char* name = "Mister";
-float height = 1.7843f;
+#define PRINTCCY_CUSTOM_TYPES vector: print_vector
 
-printout("User: ( name: {}, height: {} )", name, height);
-```
+#include <printccy.h>
 
-Or rather with a custom types:
-
-```c
 typedef struct {
-    const char* name;
-    float height;
-} User;
+    float x, y, z;
+} vector;
 
-int print_user(...)
-{
-    ...
+int print_vector(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    vector val = va_arg(*list, vector);
+    if (args_len && args[0] == 'd')
+        return print(output, output_len, "vector %{ x: {.2}, y: {.2}, z: {.2} }", val.x, val.y, val.z);
+    return print(output, output_len, "%{ x: {}, y: {}, z: {} }", val.x, val.y, val.z);
 }
 
-#define PRINTCCY_MATCH_ARG_TYPE_CUSTOM User: print_user
+int main()
+{
+    printout("Hey {}\n", "mister");
 
+    printout("{} {} {}\n", 1, 2.0f, 2.0);
 
-...
+    printout("{#0+24.12E}", 123.456);
 
-User user = { .name = "Mister", .height = 1.7843f };
-printout("User: {}", user);
+    vector vec = {1.0f, 2.0f, 3.0f};
+    printout("{d}", vec);
+}
 ```
 
 ## Overview
@@ -43,33 +43,16 @@ Printccy provides three main macros:
 
 Internally, it uses `stdio` for formatting basic types and supports all standard format specifiers **except `*`** as in `printf`.
 
-Arguments are printed at their respective `{}` placeholders, which can include format specifiers passed to the printing functions. To escape `{}`, use `%`, or define a custom escape character using:
+Arguments are printed at their respective `{}` placeholders, which can include format specifiers passed to the printing functions. By default you escape the `{}` using `%`.
+
+User defineable macros:
 
 ```c
+#define PRINTCCY_NO_STD // all base types printing functions are also disabled
 #define PRINTCCY_ESCAPE_CHARACTER '%'
+#define PRINTCCY_TEMP_BUFFER_SIZE (2<<12) // internal buffer used when printing to files, which includes stdout
+#define PRINTCCY_CUSTOM_TYPES // type: printing_function, type2: printing_function2
 ```
-
-## Custom Type Example
-
-You can define custom types for printing:
-
-```c
-typedef struct {
-    float x, y, z;
-} vector;
-
-int print_vector(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    vector val = va_arg(*list, vector);
-    return print(output, output_len, "vector %{ x: {.2f}, y: {.2f}, z: {.2f} }", val.x, val.y, val.z);
-}
-
-#define PRINTCCY_MATCH_ARG_TYPE_CUSTOM vector: print_vector
-#include "printccy.h"
-
-printout("my vector is {}", (vector){ .x = 1.0f, .y = 2.0f, .z = 3.0f });
-```
-
-**Note:** The function must return the number of printed characters, which is necessary for correct printing to files (which includes stdout).
 
 ## Implementation Details
 
@@ -84,13 +67,7 @@ While developing Printccy, I learned a few macro tricks. The most important was 
 #define OVERLOAD_MACRO(_0, _1, _2, ...) OVERLOAD_MACRO_HELPER(__VA_ARGS__, OVERLOAD3, OVERLOAD2, OVERLOAD1)(__VA_ARGS__)
 ```
 
-However, this approach doesn't work with **empty variadic arguments**, making `print("hey")` invalid. The workaround? Ensuring that the **format string is always the first argument**:
-
-```c
-#define print(...) ...
-```
-
-This lets us apply macro overloading without issues.
+However, this approach doesn't work with **empty variadic arguments**, making `print("hey")` invalid. My hacky fix is counting on the fact that the format function is always the first argument, so we can just count that among the aruguments aswell.
 
 ### Type Matching
 
