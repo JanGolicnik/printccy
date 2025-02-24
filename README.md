@@ -85,6 +85,10 @@ This also means that handling recursive printing calls (they shouldnt really be 
 
 Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically promote a bunch of basic types.
 
+## To-Do
+
+1. Add `No-Std` support
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
