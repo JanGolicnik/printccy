@@ -49,7 +49,6 @@ Arguments are printed at their respective `{}` placeholders, which can include f
 User defineable macros:
 
 ```c
-#define PRINTCCY_NO_STD // all base types printing functions are also disabled
 #define PRINTCCY_ESCAPE_CHARACTER '%'
 #define PRINTCCY_TEMP_BUFFER_SIZE (2<<12) // internal buffer used when printing to files, which includes stdout
 #define PRINTCCY_CUSTOM_TYPES // type: printing_function, type2: printing_function2

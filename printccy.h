@@ -25,10 +25,8 @@ SOFTWARE.
 #ifndef _PRINTCCY_H
 #define _PRINTCCY_H
 
-#ifndef PRINTCCY_NO_STD
 #include <stdio.h>
 #include <stdarg.h>
-#endif // PRINTCCY_NO_STD
 
 // should return the number of characters printed
 typedef int(_printccy_print_func)(char*, size_t, va_list*, const char*, size_t);
@@ -65,8 +63,6 @@ _Thread_local struct {
 #else
     #define _PRINTCCY_MAYBE_UNUSED
 #endif
-
-#ifndef PRINTCCY_NO_STD
 
 // filters out the * symbol
 #define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
@@ -113,12 +109,6 @@ int printccy_print_char_ptr(char* output, size_t output_len, va_list* list, cons
 }
 
 #define _PRINTCCY_MATCH_ARG_TYPE_BASE int: printccy_print_int, float: printccy_print_float, double: printccy_print_double, long long: printccy_print_long_long, char*: printccy_print_char_ptr
-
-#else // PRINTCCY_NO_STD
-
-#define _PRINTCCY_MATCH_ARG_TYPE_BASE
-
-#endif // PRINTCCY_NO_STD
 
 // define it youtself as: 
 // #define PRINTCCY_CUSTOM_TYPES printccy_type: print_printccy_type, printccy_type2: ...
@@ -209,6 +199,7 @@ _PRINTCCY_MAYBE_UNUSED int _printccy_forward_int(int value) { return value; }
                            _printccy.buffer_i -= _printccy.lens[--_printccy.lens_i],/*restore all the buffers*/\
                            fwrite(&_printccy.buffer[_printccy.buffer_i], sizeof(_printccy.buffer[0]), _printccy.written_len, fb),\
                            _printccy.written_len)) // return the written len
+
 
 // first argument should be the format string
 #define printout(...) printfb(stdout, __VA_ARGS__)

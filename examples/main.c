@@ -1,5 +1,4 @@
 #define PRINTCCY_CUSTOM_TYPES vector: print_vector
-
 #include "../printccy.h"
 
 typedef struct {
