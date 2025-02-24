@@ -85,3 +85,7 @@ This also means that handling recursive printing calls (they shouldnt really be 
 ## Notes
 
 Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically promote a bunch of basic types.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
