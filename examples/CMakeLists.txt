@@ -6,6 +6,6 @@ set(CMAKE_C_STANDARD 11)
 
 set(SOURCES main.c)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -Wdouble-promotion -Wno-bitfield-constant-conversion")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -Wno-bitfield-constant-conversion")
 
 add_executable(main ${SOURCES})

@@ -18,48 +18,59 @@ typedef int(_printccy_print_func)(char*, size_t, va_list*, const char*, size_t);
 #endif // PRINTCCY_TEMP_BUFFER_SIZE
 
 _Thread_local struct {
-    _printccy_print_func* print_funcs[128];
-    _printccy_print_func** funcs_ptr;
+    // print
+    _printccy_print_func* funcs[128]; // holds the function pointers the printing functions
+    size_t funcs_i;
 
-    int print_sizes[100];
-    int* print_size;
+    int printed_size;
 
+    // printfb
     char buffer[PRINTCCY_TEMP_BUFFER_SIZE];
-    char* buffer_ptr;
+    size_t buffer_i;
 
-    int print_lens[100];
-    int* print_len;
-    int current_print_len;
+    int lens[100];
+    int lens_i;
+    int written_len;
 } _printccy;
+
+#if __STDC_VERSION__ >= 202311L
+    #define _PRINTCCY_MAYBE_UNUSED [[maybe_unused]]
+// #elif __STDC_VERSION__ >= 201710L
+// #elif __STDC_VERSION__ >= 201112L
+// #elif __STDC_VERSION__ >= 199901L
+#else
+    #define _PRINTCCY_MAYBE_UNUSED
+#endif
 
 #ifndef PRINTCCY_NO_STD
 
 // filters out the * symbol
-#define  _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
+#define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
+#define _PRINTCCY_INIT_EMPTY_BUFFER(name, len) char name[len]; for (size_t i = 0; i < (len); i++) (name)[i] = 0;
 
 int printccy_print_int(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     int val = va_arg(*list, int);
-    char buf[2 + args_len];
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%';
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args + 1, args_len - 1);
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
     else          buf[1] = 'd';
     return snprintf(output, output_len, buf, val);
 }
 
 int printccy_print_long_long(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     long long val = va_arg(*list, long long);
-    char buf[3 + args_len];
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 3));
     buf[0] = '%'; 
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args + 1, args_len - 1);
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
     else          _PRINTCCY_COPY_ARGS(buf + 1, "lld", 3);
     return snprintf(output, output_len, buf, val);
 }
 
 int printccy_print_double(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     double val = va_arg(*list, double);
-    char buf[2 + args_len];
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%';
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args + 1, args_len - 1);
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
     else          buf[1] = 'f';
     return snprintf(output, output_len, buf, val);
 }
@@ -70,9 +81,9 @@ int printccy_print_float(char* output, size_t output_len, va_list* list, const c
 
 int printccy_print_char_ptr(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     const char* val = va_arg(*list, char*);
-    char buf[2 + args_len];
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%'; 
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args + 1, args_len - 1);
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
     else          buf[1] = 's';
     return snprintf(output, output_len, buf, val);
 }
@@ -123,7 +134,7 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 
         const char* start = fmt;
         while(*fmt && *fmt != '}') {fmt++;}
-        bytes_written += (*_printccy.funcs_ptr++)(output ? output + bytes_written : output, output_len, &args, start, fmt++ - start);
+        bytes_written += _printccy.funcs[_printccy.funcs_i++](output ? output + bytes_written : output, output_len, &args, start, fmt++ - start);
     }
 
     va_end(args);
@@ -133,7 +144,7 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 #define _PRINTCCY_ASSERT(expr, msg) sizeof(struct { _Static_assert(expr, msg); int _dummy; })
 #define _PRINTCCY_ASSERT_NON_ZERO_OR_EVAL(expr, msg) ((void)_PRINTCCY_ASSERT(expr != 0, msg), expr)
 
-#define _PRINTCCY_FILL_FPTR(X) *(_printccy.funcs_ptr++) = _PRINTCCY_ASSERT_NON_ZERO_OR_EVAL(_PRINTCCY_MATCH_ARG_TYPE(X), "unsupported type of variable " #X)
+#define _PRINTCCY_FILL_FPTR(X) _printccy.funcs[_printccy.funcs_i++] = _PRINTCCY_ASSERT_NON_ZERO_OR_EVAL(_PRINTCCY_MATCH_ARG_TYPE(X), "unsupported type of variable " #X)
 
 #define _PRINTCCY_FILL_FPTR1(fmt) (void)0
 #define _PRINTCCY_FILL_FPTR2(fmt, _0) _PRINTCCY_FILL_FPTR(_0)
@@ -149,25 +160,31 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 #define _PRINTCCY_N_ARGS_HELPER(_1, _2, _3, _4, _5, _6, _7, N, ...) N
 #define _PRINTCCY_N_ARGS(...)  _PRINTCCY_N_ARGS_HELPER( __VA_ARGS__, 7, 6, 5, 4, 3, 2, 1, 0 )
 
-#define _PRINTCCY_INIT (void)(!_printccy.funcs_ptr ? _printccy.funcs_ptr = _printccy.print_funcs : 0 ), (void)(!_printccy.print_size ? _printccy.print_size = _printccy.print_sizes : 0 )
-#define _PRINTCCY_SETUP_PRINT(...) ( _PRINTCCY_INIT,\
-                               _PRINTCCY_CONCAT(_PRINTCCY_FILL_FPTR, _PRINTCCY_N_ARGS(__VA_ARGS__))( __VA_ARGS__ ),\
-                               _printccy.funcs_ptr -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
-#define _PRINTCCY_CLEAN_UP_PRINT(...) (_printccy.funcs_ptr -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1, *(_printccy.print_size))
+#define _PRINTCCY_SETUP_PRINT(...) ( _PRINTCCY_CONCAT(_PRINTCCY_FILL_FPTR, _PRINTCCY_N_ARGS(__VA_ARGS__))( __VA_ARGS__ ),\
+                                     _printccy.funcs_i -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
+#define _PRINTCCY_CLEAN_UP_PRINT(...) (_printccy.funcs_i -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
+
+// avoids the "right-hand operand of comma expression has no effect" warning
+_PRINTCCY_MAYBE_UNUSED int _printccy_forward_int(int value) { return value; }
 
 // third argument should be the format string
-#define print(output_buffer, output_len, ...) ( _PRINTCCY_SETUP_PRINT(__VA_ARGS__),\
-                                                *(_printccy.print_size) = _printccy_print(output_buffer, output_len, __VA_ARGS__),\
-                                                _PRINTCCY_CLEAN_UP_PRINT(__VA_ARGS__) )
+#define print(output_buffer, output_len, ...) _printccy_forward_int((\
+                                                _PRINTCCY_SETUP_PRINT(__VA_ARGS__),\
+                                                _printccy.printed_size = _printccy_print(output_buffer, output_len, __VA_ARGS__),\
+                                                _PRINTCCY_CLEAN_UP_PRINT(__VA_ARGS__),\
+                                                _printccy.printed_size ))
+
+#define _PRINTCCY_SATURATING_SUB(a, b) ((a) >= (b) ? (a) - (b) : 0)
 
 // second argument should be the format string
-#define printfb(fb, ...) (!_printccy.buffer_ptr ? _printccy.buffer_ptr = _printccy.buffer : 0,!_printccy.print_len ? _printccy.print_len = _printccy.print_lens : 0, \
-                           *_printccy.print_len = print(0, 0, __VA_ARGS__),\
-                           _printccy.buffer_ptr += *_printccy.print_len,\
-                           _printccy.current_print_len = print(_printccy.buffer_ptr - *_printccy.print_len++, (size_t)PRINTCCY_TEMP_BUFFER_SIZE - (size_t)(_printccy.buffer_ptr - _printccy.buffer), __VA_ARGS__),\
-                           _printccy.buffer_ptr -= *(--_printccy.print_len),\
-                           fwrite(_printccy.buffer_ptr, sizeof(_printccy.buffer[0]), _printccy.current_print_len, fb),\
-                           _printccy.current_print_len)
+// the complexity comes from handling recursive printfb calls, if i could declare a local VA buffer then i could get rid of everything here
+#define printfb(fb, ...) _printccy_forward_int((\
+                           _printccy.lens[_printccy.lens_i] = print(0, 0, __VA_ARGS__), /*figure out the needed buffer size*/\
+                           _printccy.buffer_i += _printccy.lens[_printccy.lens_i], /*offset the buffer for that amount*/\
+                           _printccy.written_len = print(&_printccy.buffer[_printccy.buffer_i - _printccy.lens[_printccy.lens_i++]], _PRINTCCY_SATURATING_SUB((size_t)PRINTCCY_TEMP_BUFFER_SIZE, _printccy.buffer_i), __VA_ARGS__),\
+                           _printccy.buffer_i -= _printccy.lens[--_printccy.lens_i],/*restore all the buffers*/\
+                           fwrite(&_printccy.buffer[_printccy.buffer_i], sizeof(_printccy.buffer[0]), _printccy.written_len, fb),\
+                           _printccy.written_len)) // return the written len
 
 // first argument should be the format string
 #define printout(...) printfb(stdout, __VA_ARGS__)

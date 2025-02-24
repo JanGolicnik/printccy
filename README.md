@@ -7,7 +7,7 @@ Printccy is a **header-only** library that introduces a new way to print text in
 ```c
 #define PRINTCCY_CUSTOM_TYPES vector: print_vector
 
-#include <printccy.h>
+#include "printccy.h"
 
 typedef struct {
     float x, y, z;
@@ -16,7 +16,7 @@ typedef struct {
 int print_vector(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     vector val = va_arg(*list, vector);
     if (args_len && args[0] == 'd')
-        return print(output, output_len, "vector %{ x: {.2}, y: {.2}, z: {.2} }", val.x, val.y, val.z);
+        return print(output, output_len, "vector %{ x: {.2f}, y: {.2f}, z: {.2f} }", val.x, val.y, val.z);
     return print(output, output_len, "%{ x: {}, y: {}, z: {} }", val.x, val.y, val.z);
 }
 
@@ -24,12 +24,13 @@ int main()
 {
     printout("Hey {}\n", "mister");
 
-    printout("{} {} {}\n", 1, 2.0f, 2.0);
+    printout("{.2d} {.2f} {}\n", 1, 2.0f, 2.0);
 
-    printout("{#0+24.12E}", 123.456);
+    printout("{#0+24.12E}\n", 123.456);
+    printf("%#0+24.12E\n", 123.456);
 
     vector vec = {1.0f, 2.0f, 3.0f};
-    printout("{d}", vec);
+    printout("{d}\n", vec);
 }
 ```
 
@@ -80,3 +81,7 @@ The code around the printfb is very ugly, mostly because I couldnt figure out a 
 At the end I couldn't really figure out a different option so it stayed as a global thread local buffer of some size that the functions write to.
 
 This also means that handling recursive printing calls (they shouldnt really be used aside from debugging purposes) is a huge pain but I somehow made it work.
+
+## Notes
+
+Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically promote a bunch of basic types.
