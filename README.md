@@ -87,7 +87,8 @@ Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically 
 
 ## To-Do
 
-1. Add `No-Std` support
+1. Implement va args ourselves :D
+2. ifdef all std stuff :3
 
 ## License
 
