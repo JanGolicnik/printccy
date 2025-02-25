@@ -27,6 +27,7 @@ SOFTWARE.
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 // should return the number of characters printed
 typedef int(_printccy_print_func)(char*, size_t, va_list*, const char*, size_t);
@@ -128,7 +129,7 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 {
     va_list args; va_start(args, fmt);
 
-    int bytes_written = 0;
+    int bytes_written = 0, nth_arg = 0;
     char c, is_escape = 0;
     while ((c = *(fmt++))) 
     {
@@ -146,9 +147,15 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
             continue;
         }
 
+
         const char* start = fmt;
         while(*fmt && *fmt != '}') {fmt++;}
-        bytes_written += _printccy.funcs[_printccy.funcs_i++](output ? output + bytes_written : output, output_len, &args, start, fmt++ - start);
+
+        if(++nth_arg < 20) 
+        {
+            bytes_written += _printccy.funcs[_printccy.funcs_i++](output ? output + bytes_written : output, output_len, &args, start, fmt - start);
+        }
+        fmt++;
     }
 
     va_end(args);
@@ -162,17 +169,30 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 
 #define _PRINTCCY_FILL_FPTR1(fmt) (void)0
 #define _PRINTCCY_FILL_FPTR2(fmt, _0) _PRINTCCY_FILL_FPTR(_0)
-#define _PRINTCCY_FILL_FPTR3(fmt, _0, _1) _PRINTCCY_FILL_FPTR(_0), _PRINTCCY_FILL_FPTR(_1)
-#define _PRINTCCY_FILL_FPTR4(fmt, _0, _1, _2) _PRINTCCY_FILL_FPTR(_0), _PRINTCCY_FILL_FPTR(_1), _PRINTCCY_FILL_FPTR(_2)
-#define _PRINTCCY_FILL_FPTR5(fmt, _0, _1, _2, _3) _PRINTCCY_FILL_FPTR(_0), _PRINTCCY_FILL_FPTR(_1), _PRINTCCY_FILL_FPTR(_2), _PRINTCCY_FILL_FPTR(_3)
-#define _PRINTCCY_FILL_FPTR6(fmt, _0, _1, _2, _3, _4) _PRINTCCY_FILL_FPTR(_0), _PRINTCCY_FILL_FPTR(_1), _PRINTCCY_FILL_FPTR(_2), _PRINTCCY_FILL_FPTR(_3), _PRINTCCY_FILL_FPTR(_4)
-#define _PRINTCCY_FILL_FPTR7(fmt, _0, _1, _2, _3, _4, _5) _PRINTCCY_FILL_FPTR(_0), _PRINTCCY_FILL_FPTR(_1), _PRINTCCY_FILL_FPTR(_2), _PRINTCCY_FILL_FPTR(_3), _PRINTCCY_FILL_FPTR(_4), _PRINTCCY_FILL_FPTR(_5)
+#define _PRINTCCY_FILL_FPTR3(fmt, _0, _1) _PRINTCCY_FILL_FPTR2(fmt, _0), _PRINTCCY_FILL_FPTR(_1)
+#define _PRINTCCY_FILL_FPTR4(fmt, _0, _1, _2) _PRINTCCY_FILL_FPTR3(fmt, _0, _1), _PRINTCCY_FILL_FPTR(_2)
+#define _PRINTCCY_FILL_FPTR5(fmt, _0, _1, _2, _3) _PRINTCCY_FILL_FPTR4(fmt, _0, _1, _2), _PRINTCCY_FILL_FPTR(_3)
+#define _PRINTCCY_FILL_FPTR6(fmt, _0, _1, _2, _3, _4) _PRINTCCY_FILL_FPTR5(fmt, _0, _1, _2, _3), _PRINTCCY_FILL_FPTR(_4)
+#define _PRINTCCY_FILL_FPTR7(fmt, _0, _1, _2, _3, _4, _5) _PRINTCCY_FILL_FPTR6(fmt, _0, _1, _2, _3, _4), _PRINTCCY_FILL_FPTR(_5)
+#define _PRINTCCY_FILL_FPTR8(fmt, _0, _1, _2, _3, _4, _5, _6) _PRINTCCY_FILL_FPTR7(fmt, _0, _1, _2, _3, _4, _5), _PRINTCCY_FILL_FPTR(_6)
+#define _PRINTCCY_FILL_FPTR9(fmt, _0, _1, _2, _3, _4, _5, _6, _7) _PRINTCCY_FILL_FPTR8(fmt, _0, _1, _2, _3, _4, _5, _6), _PRINTCCY_FILL_FPTR(_7)
+#define _PRINTCCY_FILL_FPTR10(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8) _PRINTCCY_FILL_FPTR9(fmt, _0, _1, _2, _3, _4, _5, _6, _7), _PRINTCCY_FILL_FPTR(_8)
+#define _PRINTCCY_FILL_FPTR11(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9) _PRINTCCY_FILL_FPTR10(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8), _PRINTCCY_FILL_FPTR(_9)
+#define _PRINTCCY_FILL_FPTR12(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10) _PRINTCCY_FILL_FPTR11(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9), _PRINTCCY_FILL_FPTR(_10)
+#define _PRINTCCY_FILL_FPTR13(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11) _PRINTCCY_FILL_FPTR12(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10), _PRINTCCY_FILL_FPTR(_11)
+#define _PRINTCCY_FILL_FPTR14(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12) _PRINTCCY_FILL_FPTR13(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11), _PRINTCCY_FILL_FPTR(_12)
+#define _PRINTCCY_FILL_FPTR15(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13) _PRINTCCY_FILL_FPTR14(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12), _PRINTCCY_FILL_FPTR(_13)
+#define _PRINTCCY_FILL_FPTR16(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14) _PRINTCCY_FILL_FPTR15(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13), _PRINTCCY_FILL_FPTR(_14)
+#define _PRINTCCY_FILL_FPTR17(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15) _PRINTCCY_FILL_FPTR16(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14), _PRINTCCY_FILL_FPTR(_15)
+#define _PRINTCCY_FILL_FPTR18(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16) _PRINTCCY_FILL_FPTR17(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15), _PRINTCCY_FILL_FPTR(_16)
+#define _PRINTCCY_FILL_FPTR19(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17) _PRINTCCY_FILL_FPTR18(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16), _PRINTCCY_FILL_FPTR(_17)
+#define _PRINTCCY_FILL_FPTR20(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18) _PRINTCCY_FILL_FPTR19(fmt, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17), _PRINTCCY_FILL_FPTR(_18)
 
 #define _PRINTCCY_CONCAT_HELPER(a, b) a##b 
 #define _PRINTCCY_CONCAT(a, b) _PRINTCCY_CONCAT_HELPER(a, b)
 
-#define _PRINTCCY_N_ARGS_HELPER(_1, _2, _3, _4, _5, _6, _7, N, ...) N
-#define _PRINTCCY_N_ARGS(...)  _PRINTCCY_N_ARGS_HELPER( __VA_ARGS__, 7, 6, 5, 4, 3, 2, 1, 0 )
+#define _PRINTCCY_N_ARGS_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, N, ...) N
+#define _PRINTCCY_N_ARGS(...)  _PRINTCCY_N_ARGS_HELPER( __VA_ARGS__, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 )
 
 #define _PRINTCCY_SETUP_PRINT(...) ( _PRINTCCY_CONCAT(_PRINTCCY_FILL_FPTR, _PRINTCCY_N_ARGS(__VA_ARGS__))( __VA_ARGS__ ),\
                                      _printccy.funcs_i -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
