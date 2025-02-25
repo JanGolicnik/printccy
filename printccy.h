@@ -58,58 +58,21 @@ _Thread_local struct {
 
 #if __STDC_VERSION__ >= 202311L
     #define _PRINTCCY_MAYBE_UNUSED [[maybe_unused]]
+    #define _PRINTCCY_BOOL bool
 // #elif __STDC_VERSION__ >= 201710L
 // #elif __STDC_VERSION__ >= 201112L
 // #elif __STDC_VERSION__ >= 199901L
 #else
     #define _PRINTCCY_MAYBE_UNUSED
+    #define _PRINTCCY_BOOL _Bool
 #endif
 
 // filters out the * symbol
 #define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
 #define _PRINTCCY_INIT_EMPTY_BUFFER(name, len) char name[len]; for (size_t i = 0; i < (len); i++) (name)[i] = 0;
 
-int printccy_print_int(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    int val = va_arg(*list, int);
-    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
-    buf[0] = '%';
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
-    else          buf[1] = 'd';
-    return snprintf(output, output_len, buf, val);
-}
 
-int printccy_print_long_long(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    long long val = va_arg(*list, long long);
-    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 3));
-    buf[0] = '%'; 
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
-    else          _PRINTCCY_COPY_ARGS(buf + 1, "lld", 3);
-    return snprintf(output, output_len, buf, val);
-}
-
-int printccy_print_double(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    double val = va_arg(*list, double);
-    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
-    buf[0] = '%';
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
-    else          buf[1] = 'f';
-    return snprintf(output, output_len, buf, val);
-}
-
-int printccy_print_float(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    return printccy_print_double(output, output_len, list, args, args_len);
-}
-
-int printccy_print_char_ptr(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
-    const char* val = va_arg(*list, char*);
-    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
-    buf[0] = '%'; 
-    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
-    else          buf[1] = 's';
-    return snprintf(output, output_len, buf, val);
-}
-
-#define _PRINTCCY_MATCH_ARG_TYPE_BASE int: printccy_print_int, float: printccy_print_float, double: printccy_print_double, long long: printccy_print_long_long, char*: printccy_print_char_ptr
+#define _PRINTCCY_MATCH_ARG_TYPE_BASE int: printccy_print_int, float: printccy_print_float, double: printccy_print_double, long long: printccy_print_long_long, char*: printccy_print_char_ptr, _PRINTCCY_BOOL: printccy_print_bool
 
 // define it youtself as: 
 // #define PRINTCCY_CUSTOM_TYPES printccy_type: print_printccy_type, printccy_type2: ...
@@ -223,5 +186,50 @@ _PRINTCCY_MAYBE_UNUSED int _printccy_forward_int(int value) { return value; }
 
 // first argument should be the format string
 #define printout(...) printfb(stdout, __VA_ARGS__)
+
+int printccy_print_int(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    int val = va_arg(*list, int);
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
+    buf[0] = '%';
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
+    else          buf[1] = 'd';
+    return snprintf(output, output_len, buf, val);
+}
+
+int printccy_print_bool(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    int val = va_arg(*list, int);
+    return print(output, output_len, val ? "true" : "false");
+}
+
+int printccy_print_long_long(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    long long val = va_arg(*list, long long);
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 3));
+    buf[0] = '%'; 
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
+    else          _PRINTCCY_COPY_ARGS(buf + 1, "lld", 3);
+    return snprintf(output, output_len, buf, val);
+}
+
+int printccy_print_double(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    double val = va_arg(*list, double);
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
+    buf[0] = '%';
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
+    else          buf[1] = 'f';
+    return snprintf(output, output_len, buf, val);
+}
+
+int printccy_print_float(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    return printccy_print_double(output, output_len, list, args, args_len);
+}
+
+int printccy_print_char_ptr(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+    const char* val = va_arg(*list, char*);
+    _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
+    buf[0] = '%'; 
+    if (args_len) _PRINTCCY_COPY_ARGS(buf + 1, args, args_len);
+    else          buf[1] = 's';
+    return snprintf(output, output_len, buf, val);
+}
 
 #endif // _PRINTCCY_H

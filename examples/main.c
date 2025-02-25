@@ -15,6 +15,9 @@ int print_vector(char* output, size_t output_len, va_list* list, const char* arg
 int main()
 {
     printout("Hey {}\n", "mister");
+    
+    _Bool b = 1;
+    printout("Hey {}\n", b);
 
     printout("{.2d} {.2f} {}\n", 1, 2.0f, 2.0);
 
