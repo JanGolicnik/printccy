@@ -85,6 +85,8 @@ This also means that handling recursive printing calls (they shouldnt really be 
 
 Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically promote a bunch of basic types.
 
+Empty argument lists are also a problem: `printout("hey", )` which is a bit mid for declaring your own macros on top of these as `__VA_ARGS__` without `__VA_OPT__` or `##` cannot filter out the comma.
+
 ## To-Do
 
 1. Implement va args ourselves :D

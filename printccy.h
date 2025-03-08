@@ -57,35 +57,26 @@ _Thread_local struct {
 } _printccy;
 
 #if __STDC_VERSION__ >= 202311L
+#elif __STDC_VERSION__ >= 201710L
+#elif __STDC_VERSION__ >= 201112L
+#elif __STDC_VERSION__ >= 199901L
+#error Printccy cannot be used with this compiler version
+#endif
+
+#if __STDC_VERSION__ >= 202311L
     #define _PRINTCCY_MAYBE_UNUSED [[maybe_unused]]
     #define _PRINTCCY_BOOL bool
-// #elif __STDC_VERSION__ >= 201710L
-// #elif __STDC_VERSION__ >= 201112L
-// #elif __STDC_VERSION__ >= 199901L
 #else
     #define _PRINTCCY_MAYBE_UNUSED
     #define _PRINTCCY_BOOL _Bool
 #endif
 
-// filters out the * symbol
-#define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
-#define _PRINTCCY_INIT_EMPTY_BUFFER(name, len) char name[len]; for (size_t i = 0; i < (len); i++) (name)[i] = 0;
+// define it youtself as:
+// #define PRINTCCY_CUSTOM_TYPES PRINTCCY_BASE_TYPES, my_type: print_my_type, my_type2: ...
+#define PRINTCCY_BASE_TYPES int: printccy_print_int, float: printccy_print_float, double: printccy_print_double, long long: printccy_print_long_long, const char*: printccy_print_char_ptr, char*: printccy_print_char_ptr, _PRINTCCY_BOOL: printccy_print_bool
+#define PRINTCCY_TYPES PRINTCCY_BASE_TYPES
 
-
-#define _PRINTCCY_MATCH_ARG_TYPE_BASE int: printccy_print_int, float: printccy_print_float, double: printccy_print_double, long long: printccy_print_long_long, char*: printccy_print_char_ptr, _PRINTCCY_BOOL: printccy_print_bool
-
-// define it youtself as: 
-// #define PRINTCCY_CUSTOM_TYPES printccy_type: print_printccy_type, printccy_type2: ...
-#ifdef PRINTCCY_CUSTOM_TYPES
-#define _PRINTCCY_MATCH_ARG_COMMA ,
-#else
-#define PRINTCCY_CUSTOM_TYPES
-#define _PRINTCCY_MATCH_ARG_COMMA
-#endif // PRINTCCY_CUSTOM_TYPES
-
-#ifndef _PRINTCCY_MATCH_ARG_TYPE
-#define _PRINTCCY_MATCH_ARG_TYPE(X) _Generic((X), _PRINTCCY_MATCH_ARG_TYPE_BASE _PRINTCCY_MATCH_ARG_COMMA PRINTCCY_CUSTOM_TYPES, default: NULL)
-#endif // _PRINTCCY_MATCH_ARG_TYPE
+#define _PRINTCCY_MATCH_ARG_TYPE(X) _Generic((X), PRINTCCY_TYPES, default: 0)
 
 // copies to the output buffer from the fmt string and calls above function pointers when encountering a {} with arguments inside the {}
 int _printccy_print(char* output, int output_len, const char* fmt, ...)
@@ -116,7 +107,8 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
 
         if(++nth_arg < 20) 
         {
-            bytes_written += _printccy.funcs[_printccy.funcs_i++](output ? output + bytes_written : output, output_len, &args, start, fmt - start);
+            _printccy_print_func* fptr = _printccy.funcs[_printccy.funcs_i++];
+            if (fptr) bytes_written += fptr(output ? output + bytes_written : output, output_len, &args, start, fmt - start);
         }
         fmt++;
     }
@@ -125,10 +117,12 @@ int _printccy_print(char* output, int output_len, const char* fmt, ...)
     return bytes_written;
 }
 
-#define _PRINTCCY_ASSERT(expr, msg) sizeof(struct { _Static_assert(expr, msg); int _dummy; })
-#define _PRINTCCY_ASSERT_NON_ZERO_OR_EVAL(expr, msg) ((void)_PRINTCCY_ASSERT(expr != 0, msg), expr)
+#define _PRINTCCY_ASSERT(expr, msg) sizeof(struct { _Static_assert(expr != 0, msg); int _dummy; })
 
-#define _PRINTCCY_FILL_FPTR(X) _printccy.funcs[_printccy.funcs_i++] = _PRINTCCY_ASSERT_NON_ZERO_OR_EVAL(_PRINTCCY_MATCH_ARG_TYPE(X), "unsupported type of variable " #X)
+#define _PRINTCCY_IS_INT(X) _Generic((X), int: 0, default: 1)
+#define _PRINTCCY_GET_FPTR_AND_ASSERT(X) ((void)_PRINTCCY_ASSERT(_PRINTCCY_IS_INT(_PRINTCCY_MATCH_ARG_TYPE(X)),  "unsupported type of variable " #X), _PRINTCCY_MATCH_ARG_TYPE(X))
+
+#define _PRINTCCY_FILL_FPTR(X) _printccy.funcs[_printccy.funcs_i++] = _PRINTCCY_GET_FPTR_AND_ASSERT(X)
 
 #define _PRINTCCY_FILL_FPTR1(fmt) (void)0
 #define _PRINTCCY_FILL_FPTR2(fmt, _0) _PRINTCCY_FILL_FPTR(_0)
@@ -186,6 +180,10 @@ _PRINTCCY_MAYBE_UNUSED int _printccy_forward_int(int value) { return value; }
 
 // first argument should be the format string
 #define printout(...) printfb(stdout, __VA_ARGS__)
+
+// filters out the * symbol
+#define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
+#define _PRINTCCY_INIT_EMPTY_BUFFER(name, len) char name[len]; for (size_t i = 0; i < (len); i++) (name)[i] = 0;
 
 int printccy_print_int(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
     int val = va_arg(*list, int);
