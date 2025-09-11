@@ -1,6 +1,6 @@
 # PRINTCCY
 
-Printccy is a **header-only** library that introduces a new way to print text in C! It uses some **macro magic** to infer types from variadic arguments and calls the appropriate print functions automatically. Users can also register their own types for printing.
+Printccy is a **header-only** library that introduces a new way to print text in C! It uses some macro magic to infer types from variadic arguments and calls the appropriate print functions automatically. Users can also register their own types for printing.
 
 ## Usage
 
@@ -56,7 +56,7 @@ User defineable macros:
 
 ## Implementation Details
 
-While developing Printccy, I learned a few macro tricks. The most important was **macro overloading**, which allows calling different macros based on the number of arguments:
+I use a trick that allows for macro overloading on the number of arguments:
 
 ```c
 #define OVERLOAD1(_0) ...
@@ -67,11 +67,11 @@ While developing Printccy, I learned a few macro tricks. The most important was 
 #define OVERLOAD_MACRO(_0, _1, _2, ...) OVERLOAD_MACRO_HELPER(__VA_ARGS__, OVERLOAD3, OVERLOAD2, OVERLOAD1)(__VA_ARGS__)
 ```
 
-However, this approach doesn't work with **empty variadic arguments**, making `print("hey")` invalid. My hacky fix is counting on the fact that the format function is always the first argument, so we can just count that among the aruguments aswell.
+However, this approach doesn't work with empty variadic arguments, making `print("hey")` invalid. My hacky fix is to count on the fact that the format function is always the first argument, so we can just count that among the aruguments aswell.
 
 ### Type Matching
 
-After selecting the correct overload, `_Generic` is used to add the function pointer of each argument's printing function to a **thread-local buffer**. The main printing function then processes `{}` in the string and calls the functions in sequence.
+After selecting the correct overload, `_Generic` is used to add the function pointer of each argument's printing function to a thread-local buffer. The main printing function then processes `{}` in the string and calls the functions in sequence.
 
 ### Printing to file
 
@@ -90,7 +90,7 @@ Empty argument lists are also a problem: `printout("hey", )` which is a bit mid 
 ## To-Do
 
 1. Implement va args ourselves :D
-2. ifdef all std stuff :3
+2. allow for nostd
 
 ## License
 
