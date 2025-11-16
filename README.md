@@ -1,6 +1,8 @@
 # PRINTCCY
 
-Printccy is a **header-only** library that introduces a new way to print text in C! It uses some macro magic to infer types from variadic arguments and calls the appropriate print functions automatically. Users can also register their own types for printing.
+Printccy is a header only library that enables type safe printing for arbitrary print arguments in C!
+It uses some macro magic to infer types from variadic arguments and calls the appropriate print functions automatically.
+Users can also provide printing functions for custom types.
 
 ## Usage
 
@@ -54,33 +56,6 @@ User defineable macros:
 #define PRINTCCY_CUSTOM_TYPES // type: printing_function, type2: printing_function2
 ```
 
-## Implementation Details
-
-I use a trick that allows for macro overloading on the number of arguments:
-
-```c
-#define OVERLOAD1(_0) ...
-#define OVERLOAD2(_0, _1) ...
-#define OVERLOAD3(_0, _1, _2) ...
-
-#define OVERLOAD_MACRO_HELPER(_2, _1, _0, NAME, ...) NAME
-#define OVERLOAD_MACRO(_0, _1, _2, ...) OVERLOAD_MACRO_HELPER(__VA_ARGS__, OVERLOAD3, OVERLOAD2, OVERLOAD1)(__VA_ARGS__)
-```
-
-However, this approach doesn't work with empty variadic arguments, making `print("hey")` invalid. My hacky fix is to count on the fact that the format function is always the first argument, so we can just count that among the aruguments aswell.
-
-### Type Matching
-
-After selecting the correct overload, `_Generic` is used to add the function pointer of each argument's printing function to a thread-local buffer. The main printing function then processes `{}` in the string and calls the functions in sequence.
-
-### Printing to file
-
-The code around the printfb is very ugly, mostly because I couldnt figure out a way to declare a local VA array based on the print(0, 0, ...) return value.
-
-At the end I couldn't really figure out a different option so it stayed as a global thread local buffer of some size that the functions write to.
-
-This also means that handling recursive printing calls (they shouldnt really be used aside from debugging purposes) is a huge pain but I somehow made it work.
-
 ## Notes
 
 Doesn't work well with `-Wdouble-promotion` as variadic arguments automatically promote a bunch of basic types.
@@ -90,7 +65,7 @@ Empty argument lists are also a problem: `printout("hey", )` which is a bit mid 
 ## To-Do
 
 1. Implement va args ourselves :D
-2. allow for nostd
+2. ifdef all std stuff :3
 
 ## License
 
