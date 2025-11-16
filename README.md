@@ -4,6 +4,26 @@ Printccy is a header only library that enables type safe printing for arbitrary 
 It uses some macro magic to infer types from variadic arguments and calls the appropriate print functions automatically.
 Users can also provide printing functions for custom types.
 
+## Including in your own project
+
+You can just copy the header files over manually or use cmake and fetch content like so:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    printccy
+    GIT_REPOSITORY https://github.com/JanGolicnik/printccy.git
+)
+
+FetchContent_MakeAvailable(... printccy)
+
+target_link_libraries(${PROJECT_NAME}
+    ...
+    printccy
+)
+```
+
 ## Usage
 
 ```c

@@ -1,5 +1,5 @@
 #define PRINTCCY_CUSTOM_TYPES vector: print_vector
-#include "../printccy.h"
+#include "../include/printccy/printccy.h"
 
 typedef struct {
     float x, y, z;
