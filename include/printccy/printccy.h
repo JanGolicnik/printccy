@@ -81,12 +81,16 @@ _Thread_local struct {
     double: printccy_print_double,\
     int64_t: printccy_print_long_long,\
     uint64_t: printccy_print_long_long,\
-    u8: printccy_print_char,\
     char: printccy_print_char,\
     const char*: printccy_print_char_ptr,\
     char*: printccy_print_char_ptr,\
     _PRINTCCY_BOOL: printccy_print_bool
-#define PRINTCCY_TYPES PRINTCCY_BASE_TYPES
+
+#ifdef PRINTCCY_CUSTOM_TYPES
+    #define PRINTCCY_TYPES PRINTCCY_BASE_TYPES, PRINTCCY_CUSTOM_TYPES
+#else 
+    #define PRINTCCY_TYPES PRINTCCY_BASE_TYPES
+#endif // PRINTCCY_CUSTOM_TYPES
 
 #define _PRINTCCY_MATCH_ARG_TYPE(X) _Generic((X), PRINTCCY_TYPES, default: 0)
 

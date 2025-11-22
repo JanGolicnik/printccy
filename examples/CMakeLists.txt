@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.10)
+project(printccy_test)
 
-project(printccy_examples)
+set(C_STANDARD 17)
 
-set(CMAKE_C_STANDARD 11)
+include(FetchContent)
+
+FetchContent_Declare(
+    printccy
+    GIT_REPOSITORY https://github.com/JanGolicnik/printccy.git
+)
+
+FetchContent_MakeAvailable(printccy)
 
 set(SOURCES main.c)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic -Wall -Wextra -Werror -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-function -Wno-bitfield-constant-conversion -Wno-misleading-indentation")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -Wno-bitfield-constant-conversion")
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-add_executable(main ${SOURCES})
+target_include_directories(${PROJECT_NAME} PUBLIC)
+
+target_link_libraries(${PROJECT_NAME}
+    printccy
+)
