@@ -89,4 +89,4 @@ Empty argument lists are also a problem: `printout("hey", )` which is a bit mid 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is [Beerware](https://en.wikipedia.org/wiki/Beerware), if you find any of this cool then buy me a beer :)
