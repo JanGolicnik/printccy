@@ -88,19 +88,20 @@ _Thread_local struct {
 
 #ifdef PRINTCCY_CUSTOM_TYPES
     #define PRINTCCY_TYPES PRINTCCY_BASE_TYPES, PRINTCCY_CUSTOM_TYPES
-#else 
+#else
     #define PRINTCCY_TYPES PRINTCCY_BASE_TYPES
 #endif // PRINTCCY_CUSTOM_TYPES
 
 #define _PRINTCCY_MATCH_ARG_TYPE(X) _Generic((X), PRINTCCY_TYPES, default: 0)
 
 // copies to the output buffer from the fmt string and calls above function pointers when encountering a {} with arguments inside the {}
-static inline int32_t _printccy_print(char* output, int32_t output_len, const char* fmt, ...)
+static inline int32_t _printccy_print(char* output, int32_t output_len, int32_t n_args, const char* fmt, ...)
 {
     va_list args; va_start(args, fmt);
 
     int32_t bytes_written = 0, nth_arg = 0;
     char c, is_escape = 0;
+    int32_t funcs_i = _printccy.funcs_i - n_args;
     while ((c = *(fmt++)))
     {
         if (is_escape || (c != '{' && c != PRINTCCY_ESCAPE_CHARACTER))
@@ -117,13 +118,11 @@ static inline int32_t _printccy_print(char* output, int32_t output_len, const ch
             continue;
         }
 
-
         const char* start = fmt;
-        while(*fmt && *fmt != '}') {fmt++;}
-
-        if(++nth_arg < 20)
+        while (*fmt && *fmt != '}') { fmt++; }
+        if (++nth_arg < 20)
         {
-            _printccy_print_func* fptr = _printccy.funcs[_printccy.funcs_i++];
+            _printccy_print_func* fptr = _printccy.funcs[funcs_i];
             if (fptr) bytes_written += fptr(output ? output + bytes_written : output, output_len, &args, start, fmt - start);
         }
         fmt++;
@@ -167,8 +166,7 @@ static inline int32_t _printccy_print(char* output, int32_t output_len, const ch
 #define _PRINTCCY_N_ARGS_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, N, ...) N
 #define _PRINTCCY_N_ARGS(...)  _PRINTCCY_N_ARGS_HELPER( __VA_ARGS__, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 )
 
-#define _PRINTCCY_SETUP_PRINT(...) ( _PRINTCCY_CONCAT(_PRINTCCY_FILL_FPTR, _PRINTCCY_N_ARGS(__VA_ARGS__))( __VA_ARGS__ ),\
-                                     _printccy.funcs_i -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
+#define _PRINTCCY_SETUP_PRINT(...) ( _PRINTCCY_CONCAT(_PRINTCCY_FILL_FPTR, _PRINTCCY_N_ARGS(__VA_ARGS__))( __VA_ARGS__ ) )
 #define _PRINTCCY_CLEAN_UP_PRINT(...) (_printccy.funcs_i -= _PRINTCCY_N_ARGS(__VA_ARGS__) - 1)
 
 // avoids the "right-hand operand of comma expression has no effect" warning
@@ -177,7 +175,7 @@ static inline _PRINTCCY_MAYBE_UNUSED int32_t _printccy_forward_int(int32_t value
 // third argument should be the format string
 #define print(output_buffer, output_len, ...) _printccy_forward_int((\
                                                 _PRINTCCY_SETUP_PRINT(__VA_ARGS__),\
-                                                _printccy.printed_size = _printccy_print(output_buffer, output_len, __VA_ARGS__),\
+                                                _printccy.printed_size = _printccy_print(output_buffer, output_len, _PRINTCCY_N_ARGS(__VA_ARGS__) - 1, __VA_ARGS__),\
                                                 _PRINTCCY_CLEAN_UP_PRINT(__VA_ARGS__),\
                                                 _printccy.printed_size ))
 
@@ -201,7 +199,9 @@ static inline _PRINTCCY_MAYBE_UNUSED int32_t _printccy_forward_int(int32_t value
 #define _PRINTCCY_COPY_ARGS(to, from, len) do { for (size_t i = 0; i < (len); i++) { char c = (from)[i]; if(c != '*') (to)[i] = c; } } while(0)
 #define _PRINTCCY_INIT_EMPTY_BUFFER(name, len) char name[len]; for (size_t i = 0; i < (len); i++) (name)[i] = 0;
 
-static inline int32_t printccy_print_int(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+#define PRINTCCY_PRINT_FUNC_DEF(name) int32_t name(char* output, size_t output_len, va_list* list, const char* args, size_t args_len)
+
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_int) {
     const int32_t val = va_arg(*list, int32_t);
     _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%';
@@ -210,12 +210,12 @@ static inline int32_t printccy_print_int(char* output, size_t output_len, va_lis
     return snprintf(output, output_len, buf, val);
 }
 
-static inline int32_t printccy_print_bool(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_bool) {
     const int32_t val = va_arg(*list, int32_t);
     return print(output, output_len, val ? "true" : "false");
 }
 
-static inline int32_t printccy_print_long_long(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_long_long) {
     const int64_t val = va_arg(*list, int64_t);
     _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 3));
     buf[0] = '%';
@@ -224,7 +224,7 @@ static inline int32_t printccy_print_long_long(char* output, size_t output_len, 
     return snprintf(output, output_len, buf, val);
 }
 
-static inline int32_t printccy_print_double(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_double) {
     const double val = va_arg(*list, double);
     _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%';
@@ -233,16 +233,16 @@ static inline int32_t printccy_print_double(char* output, size_t output_len, va_
     return snprintf(output, output_len, buf, val);
 }
 
-static inline int32_t printccy_print_float(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_float) {
     return printccy_print_double(output, output_len, list, args, args_len);
 }
 
-static inline int32_t printccy_print_char(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_char) {
     int32_t val = va_arg(*list, int32_t);
     return snprintf(output, output_len, "%c", val);
 }
 
-static inline int32_t printccy_print_char_ptr(char* output, size_t output_len, va_list* list, const char* args, size_t args_len) {
+static inline PRINTCCY_PRINT_FUNC_DEF(printccy_print_char_ptr) {
     const char* val = va_arg(*list, char*);
     _PRINTCCY_INIT_EMPTY_BUFFER(buf, 2 + (args_len ? args_len : 1));
     buf[0] = '%';
